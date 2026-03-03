@@ -397,3 +397,16 @@ Parser improvements in `crates/ott-core/src/parser.rs`:
 - Support multi-line productions where the `:: ... :: ...` metadata appears on a later line.
 
 Quick regression: `ott-cli check` succeeds on all upstream `ott` `tests/*.ott` except `test7.ott`, which also fails with reference Ott 0.34 (negative test).
+
+### 2026-03-04 — Binding-spec parsing added (ott-bind) + strict checking
+
+- Added `crates/ott-bind/`: a small lexer+parser for Ott binding specifications.
+  - Supports `bind ... in ...`, assignments (`b = ...`), `union`, `#`, `{}` empty set.
+  - Supports dotted forms `..` / `...` / `....` as a single expression constructor.
+  - Accepts Ott list-form atoms like `</ p // i />` as an uninterpreted `Raw(...)` expression.
+- Updated `crates/ott-core`:
+  - Extract **multiple** `(+ ... +)` blocks per production (`bind_specs: Vec<String>`).
+  - Avoid false-positive bind-spec extraction for quoted terminals like `'(+'` / `'+)'`.
+  - `check_spec` now parses all binding specs (in `strict` mode) and fails fast on invalid syntax.
+
+Regression: with strict bind-spec parsing enabled, `ott-cli check` still passes all upstream `ott` `tests/*.ott` except the known negative test `test7.ott`.
