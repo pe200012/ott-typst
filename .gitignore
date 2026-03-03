@@ -1,0 +1,8 @@
+/target
+**/target
+
+# Built WASM artifacts for Typst
+/typst/plugins/*.wasm
+
+# OS
+.DS_Store

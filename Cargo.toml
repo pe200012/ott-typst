@@ -1,0 +1,26 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/ott-core",
+  "crates/ott-render",
+  "crates/ott-cli",
+  "crates/ott-wasm",
+]
+
+[workspace.package]
+edition = "2024"
+license = "BSD-2-Clause"
+repository = ""
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+
+# allow some pedantic lints globally; we can tighten later.
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+
