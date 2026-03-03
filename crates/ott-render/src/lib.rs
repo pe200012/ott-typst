@@ -87,11 +87,18 @@ pub fn render_for_typst(spec: &ott_core::CheckedSpec) -> TypstRenderDoc {
                         .productions
                         .iter()
                         .map(|p| {
-                            if let Some(bind) = &p.bind_spec {
-                                format!("{} (+ {} +)", p.pattern, bind.trim())
-                            } else {
-                                p.pattern.clone()
+                            if p.bind_specs.is_empty() {
+                                return p.pattern.clone();
                             }
+
+                            let specs = p
+                                .bind_specs
+                                .iter()
+                                .map(|b| format!("(+ {} +)", b.trim()))
+                                .collect::<Vec<_>>()
+                                .join(" ");
+
+                            format!("{} {}", p.pattern, specs)
                         })
                         .collect::<Vec<_>>();
 

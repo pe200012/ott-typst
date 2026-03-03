@@ -74,8 +74,8 @@ pub struct Production {
     pub meta: Option<String>,
     /// Optional constructor/production name.
     pub name: Option<String>,
-    /// Optional binding specification body (inside `(+ ... +)`), stored raw.
-    pub bind_spec: Option<String>,
+    /// Binding specification bodies (inside each `(+ ... +)`), stored raw.
+    pub bind_specs: Vec<String>,
     /// Any additional `{{ ... }}` blocks attached to this production.
     pub annotations: Vec<HomBlock>,
     /// Original raw text (may span multiple lines).

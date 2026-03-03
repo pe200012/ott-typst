@@ -445,7 +445,7 @@ fn parse_production(lines: &[&str], i: &mut usize) -> OttResult<Production> {
     // Continuation lines often carry `{{ com ... }}` / `{{ ich ... }}` blocks,
     // so we extract annotations from the full raw production text.
     let (annos, raw_wo_homs) = extract_inline_hom_blocks(&raw);
-    let (bind_spec, _raw_wo_bindspec) = extract_bind_spec(&raw_wo_homs);
+    let (bind_specs, _raw_wo_bindspec) = extract_bind_specs(&raw_wo_homs);
 
     // Parse the structural part `pattern :: meta :: name` from the whole (possibly multi-line)
     // production. Ott allows the `:: ... :: ...` metadata to appear on a later line.
@@ -488,7 +488,7 @@ fn parse_production(lines: &[&str], i: &mut usize) -> OttResult<Production> {
         pattern,
         meta,
         name,
-        bind_spec,
+        bind_specs,
         annotations: annos,
         raw,
     })
@@ -759,26 +759,67 @@ fn extract_inline_hom_blocks(s: &str) -> (Vec<HomBlock>, String) {
     (blocks, out)
 }
 
-/// Extract a single binding specification of the form `(+ ... +)`.
+/// Extract all binding specifications of the form `(+ ... +)`.
 ///
-/// Returns `(bind_spec, stripped)`.
+/// Returns `(bind_specs, stripped)` where `stripped` is the input with all
+/// occurrences of `(+ ... +)` removed.
 #[must_use]
-fn extract_bind_spec(s: &str) -> (Option<String>, String) {
-    let Some(start) = s.find("(+") else {
-        return (None, s.to_string());
-    };
-    let Some(end_rel) = s[start + 2..].find("+)") else {
-        return (None, s.to_string());
+fn extract_bind_specs(s: &str) -> (Vec<String>, String) {
+    let bytes = s.as_bytes();
+
+    let before_ok = |b: u8| b.is_ascii_whitespace() || matches!(b, b')' | b']' | b'}');
+    let after_ok = |b: u8| {
+        b.is_ascii_whitespace() || matches!(b, b'{' | b'%' | b')' | b']' | b'}' | b',' | b';')
     };
 
-    let end = start + 2 + end_rel;
-    let body = s[start + 2..end].trim().to_string();
-
+    let mut specs = Vec::new();
     let mut stripped = String::new();
-    stripped.push_str(&s[..start]);
-    stripped.push_str(&s[end + 2..]);
 
-    (Some(body), stripped)
+    let mut copy_from = 0usize;
+    let mut search_from = 0usize;
+
+    while let Some(rel_start) = s[search_from..].find("(+") {
+        let start = search_from + rel_start;
+
+        if start > 0 && !before_ok(bytes[start - 1]) {
+            // Not a real bind-spec delimiter (e.g. inside a quoted terminal `'(+'`).
+            search_from = start + 2;
+            continue;
+        }
+
+        // Find a matching closing `+)` with a reasonable boundary.
+        let mut end = None;
+        let mut close_search_from = start + 2;
+        while let Some(rel_end) = s[close_search_from..].find("+)") {
+            let cand = close_search_from + rel_end;
+            let after = cand + 2;
+
+            if after < s.len() && !after_ok(bytes[after]) {
+                close_search_from = cand + 2;
+                continue;
+            }
+
+            end = Some(cand);
+            break;
+        }
+
+        let Some(end) = end else {
+            break;
+        };
+
+        stripped.push_str(&s[copy_from..start]);
+
+        let body = s[start + 2..end].trim();
+        if !body.is_empty() {
+            specs.push(body.to_string());
+        }
+
+        copy_from = end + 2;
+        search_from = copy_from;
+    }
+
+    stripped.push_str(&s[copy_from..]);
+    (specs, stripped)
 }
 
 fn parse_hom_block_from_first_line(

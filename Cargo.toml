@@ -4,7 +4,7 @@ members = [
   "crates/ott-core",
   "crates/ott-render",
   "crates/ott-cli",
-  "crates/ott-wasm",
+  "crates/ott-wasm", "crates/ott-bind",
 ]
 
 [workspace.package]

@@ -25,7 +25,7 @@ pub struct CheckedSpec {
     pub grammar_index: BTreeMap<String, usize>,
 }
 
-pub fn check_spec(spec: Spec, _opts: &OttOptions) -> OttResult<CheckedSpec> {
+pub fn check_spec(spec: Spec, opts: &OttOptions) -> OttResult<CheckedSpec> {
     let mut roots = BTreeSet::new();
     let mut root_index = BTreeMap::new();
 
@@ -40,6 +40,25 @@ pub fn check_spec(spec: Spec, _opts: &OttOptions) -> OttResult<CheckedSpec> {
                         );
                     }
                     root_index.entry(root.clone()).or_insert(item_idx);
+                }
+
+                if opts.strict {
+                    let primary = rule
+                        .roots
+                        .first()
+                        .expect("grammar rule should have at least one root");
+
+                    for prod in &rule.productions {
+                        for bs in &prod.bind_specs {
+                            if let Err(e) = ott_bind::parse_bind_spec(bs) {
+                                return Err(OttError::new(format!(
+                                    "invalid binding specification in grammar `{}`: {}",
+                                    primary, e
+                                ))
+                                .with_position(Position::new(item_idx + 1, 1)));
+                            }
+                        }
+                    }
                 }
             }
         }
