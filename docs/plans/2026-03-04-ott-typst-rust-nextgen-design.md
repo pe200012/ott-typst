@@ -410,3 +410,12 @@ Quick regression: `ott-cli check` succeeds on all upstream `ott` `tests/*.ott` e
   - `check_spec` now parses all binding specs (in `strict` mode) and fails fast on invalid syntax.
 
 Regression: with strict bind-spec parsing enabled, `ott-cli check` still passes all upstream `ott` `tests/*.ott` except the known negative test `test7.ott`.
+
+### 2026-03-04 — Typst inline `#ott[...]` API added
+
+- Added an inline Typst helper in `typst/ott.typ`:
+  - `#ott[```ott ...```]` renders an Ott snippet embedded directly in the Typst document.
+  - `#ott-file("path/to/spec.ott")` is a convenience wrapper around `render(read(path))`.
+- Updated demos: `demo.typ`, `typst/demo.typ`.
+- Updated README usage examples.
+- Verified end-to-end: `typst compile --root . demo.typ /tmp/ott-demo.pdf` succeeds.
