@@ -14,5 +14,4 @@ crate-type = ["cdylib"]
 [dependencies]
 ott-core = { path = "../ott-core" }
 ott-render = { path = "../ott-render" }
-serde = { version = "1", features = ["derive"] }
 wasm-minimal-protocol = "0.1.0"

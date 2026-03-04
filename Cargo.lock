@@ -352,7 +352,6 @@ version = "0.1.0"
 dependencies = [
  "ott-core",
  "ott-render",
- "serde",
  "wasm-minimal-protocol",
 ]
 
