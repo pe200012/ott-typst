@@ -110,7 +110,6 @@ impl BuiltinLex {
 
 #[derive(Debug, Clone)]
 struct MetavarDef {
-    sort: String,
     lex: LexPattern,
 }
 
@@ -135,7 +134,6 @@ pub struct OttSyntax {
 
     root_alias: HashMap<String, String>,
     metavars: HashMap<String, MetavarDef>,
-    metavar_alias: HashMap<String, String>,
 
     grammar: Grammar,
     terminals: Vec<String>,
@@ -841,14 +839,13 @@ pub fn compile_syntax(spec: &CheckedSpec) -> OttResult<OttSyntax> {
             }
 
             if let Some(lex) = parse_lex_block(&mv.reps) {
-                metavars.insert(canon.clone(), MetavarDef { sort: canon, lex });
+                metavars.insert(canon.clone(), MetavarDef { lex });
             } else {
                 // Default to `alphanum` if absent; this matches common Ott usage
                 // and keeps the parser usable for simplified specs.
                 metavars.insert(
                     canon.clone(),
                     MetavarDef {
-                        sort: canon,
                         lex: LexPattern::Builtin(BuiltinLex::Alphanum),
                     },
                 );
@@ -880,7 +877,6 @@ pub fn compile_syntax(spec: &CheckedSpec) -> OttResult<OttSyntax> {
         roots,
         root_alias,
         metavars,
-        metavar_alias,
         grammar,
         terminals,
     })
