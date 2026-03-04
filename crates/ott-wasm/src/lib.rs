@@ -77,7 +77,10 @@ pub fn compile_spec(spec_bytes: &[u8]) -> Result<Vec<u8>, String> {
 /// - `root_bytes`: grammar root name (or synonym). If empty, uses default.
 /// - `term_bytes`: the term text.
 ///
-/// Returns the normalized term text as UTF-8 bytes.
+/// Returns a Typst *math* code string (without surrounding `$...$`) as UTF-8 bytes.
+///
+/// The returned string is intended to be wrapped by the Typst side as:
+/// `eval("$" + code + "$")`.
 #[wasm_func]
 pub fn parse_term(
     id_bytes: &[u8],
@@ -109,7 +112,9 @@ pub fn parse_term(
             root
         };
 
-        let out = syntax.parse(root, term).map_err(|e| e.to_string())?;
-        Ok(out.into_bytes())
+        let code = syntax
+            .render_typst_math(root, term)
+            .map_err(|e| e.to_string())?;
+        Ok(code.into_bytes())
     })
 }

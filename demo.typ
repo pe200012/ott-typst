@@ -4,11 +4,11 @@
 
 == Render the spec
 
-#render(read("fixtures/tapl/arrow.ott"))
+#render(read("fixtures/tapl/arrow_typst.ott"))
 
 == Parse and typeset terms
 
-#let ott = ott-file(read("fixtures/tapl/arrow.ott"), root: "t")
+#let ott = ott-file(read("fixtures/tapl/arrow_typst.ott"), root: "t")
 
 - var: #ott[x]
 - abs (no spaces): #ott[`\x.x`]

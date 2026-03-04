@@ -57,7 +57,9 @@ $ #ott[`[x|->x]x`] $
 
 Notes:
 
-- Term parsing returns `raw(...)` content for now (monospace, safe to embed in markup or math).
+- Term parsing uses `{{ typst ... }}` hom templates in your `.ott` spec to pretty-print object-language snippets into **Typst math**.
+  - If a production/metavar has no `typst` hom, we fall back to rendering the original source slice as math text.
+  - In `typst` homs, use Typst math symbols (e.g. `tack.r`, `mapsto`, `lambda`, `arrow.r`) instead of LaTeX commands (`\\vdash`, `\\mapsto`, ...).
 - Filter-mode (`[[...]]`) is not implemented; use `ott-file(...)` + the returned `ott[...]` function instead.
 - Proof-assistant backends are not implemented yet.
 

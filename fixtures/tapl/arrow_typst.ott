@@ -1,0 +1,44 @@
+% TAPL [arrow]  Untyped lambda-calculus, p72
+
+metavar termvar, x ::=
+  {{ isa string }} {{ coq nat }} {{ coq-equality }} {{ hol string }}
+  {{ lex alphanum }} {{ tex \mathsf{[[termvar]]} }} {{ typst [[termvar]] }}
+
+grammar
+
+t :: Tm ::=                                       {{ com terms: }}
+  | x                             ::   :: Var       {{ com variable }} {{ typst [[x]] }}
+  | \ x . t                       ::   :: Abs       (+ bind x in t +)
+                                                    {{ com abstraction }} {{ typst lambda [[x]]. [[t]] }}
+  | t1 t2                         ::   :: App       {{ com application }} {{ typst [[t1]] [[t2]] }}
+  | [ x |-> t' ] t                :: M :: Subst
+    {{ ich (subst_t [[t']] [[x]] [[t]]) }}
+    {{ typst [ [[x]] mapsto [[t']] ] [[t]] }}
+
+v :: Va ::=                                       {{ com values: }}
+  | \ x . t                       ::   :: Abs       {{ com abstraction value }} {{ typst lambda [[x]]. [[t]] }}
+
+
+subrules
+v <:: t
+
+substitutions
+  single   t termvar :: subst
+
+defns
+Jop :: '' ::=
+
+defn
+t --> t' :: :: red :: E_ {{ com Evaluation }} by
+
+t1 --> t1'
+----------------- :: App1
+t1 t2 --> t1' t2
+
+
+t2 --> t2'
+----------------- :: App2
+v1 t2 --> v1 t2'
+
+----------------------------- :: AppAbs
+(\x.t12) v2 --> [x |-> v2]t12

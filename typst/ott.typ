@@ -3,7 +3,7 @@
 // This file expects a WASM plugin at `typst/plugins/ott.wasm` that exports:
 // - `parse_rules(bytes) -> bytes` returning CBOR render items
 // - `compile_spec(bytes) -> bytes` returning CBOR `{id, roots, default_root}`
-// - `parse_term(id_bytes, root_bytes, term_bytes) -> bytes` returning UTF-8
+// - `parse_term(id_bytes, root_bytes, term_bytes) -> bytes` returning UTF-8 Typst math code (without `$...$`)
 
 #import "@preview/curryst:0.5.0": rule, prooftree
 
@@ -115,8 +115,9 @@
     let term = _body_text(body).trim()
     assert.ne(term, "", message: "ott[...] term is empty")
 
-    let out = str(_ott_wasm.parse_term(bytes(str(id)), bytes(chosen), bytes(term)))
-    _rawline(out)
+    let code = str(_ott_wasm.parse_term(bytes(str(id)), bytes(chosen), bytes(term)))
+    // Turn Typst math code into real math content.
+    eval("$" + code + "$")
   }
 }
 

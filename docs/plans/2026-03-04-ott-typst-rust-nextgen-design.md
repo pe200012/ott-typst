@@ -444,3 +444,20 @@ Implemented an explicit Typst API to parse **object-language snippets** against 
 - Tests: `crates/ott-core/tests/term_parsing.rs` exercises TAPL `arrow.ott` terms (`x`, `\x.x`, `[x|->x]x`).
 
 Note: this supersedes the earlier inline `#ott[```ott ...```]` helper that rendered embedded *spec* snippets. Spec rendering remains available via `#render(read(...))`.
+
+### 2026-03-04 — Typst `{{ typst ... }}` hom-driven pretty-printing (Typst-math)
+
+Extended the term parsing pipeline to produce a parse tree and pretty-print via `typst` homs.
+
+- Core: `crates/ott-core/src/syntax.rs`
+  - Earley parser now records backpointers and reconstructs one parse tree (not just accept/reject).
+  - New API: `OttSyntax::render_typst_math(root, input) -> OttResult<String>` returning Typst math code without `$...$`.
+  - Template support: `{{ typst ... }}` on grammar productions and metavars, with `[[name]]` placeholders.
+    - Metavar values are converted to Typst-math identifiers when possible (e.g. `x12` → `x_12`), otherwise quoted as math text.
+- WASM: `crates/ott-wasm/src/lib.rs`
+  - `parse_term(...)` now returns Typst math code (instead of the normalized input term).
+- Typst: `typst/ott.typ`
+  - `ott-file(...)` now turns that code into real math content via `eval("$" + code + "$")`.
+- Fixtures/tests:
+  - Added `fixtures/tapl/arrow_typst.ott` as an example spec with `typst` homs.
+  - Added `crates/ott-core/tests/term_typst_hom.rs`.
