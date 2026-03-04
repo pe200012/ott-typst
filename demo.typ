@@ -1,5 +1,21 @@
-#import "typst/ott.typ": render
+#import "typst/ott.typ": ott, render
 
-= TAPL Arrow (root demo)
+= Ott demo
+
+== Inline snippet
+
+#ott[
+```ott
+metavar ident , x  ::= {{ lex alphanum }}
+
+grammar
+
+ expr , e  :: Expr_ ::=
+  |  x  :: :: var
+  |  () :: :: unit
+```
+]
+
+== TAPL Arrow (from file)
 
 #render(read("fixtures/tapl/arrow.ott"))

@@ -39,16 +39,28 @@ typst compile --root . demo.typ demo.pdf
 
 ## Use in your own Typst document
 
-```typst
-#import "typst/ott.typ": render
+````typst
+#import "typst/ott.typ": ott, ott-file
 
-#render(read("path/to/spec.ott"))
+// Inline usage (recommended: use a raw code block)
+#ott[
+```ott
+grammar
+
+ t :: T_ ::=
+  | x :: :: var
 ```
+]
+
+// File usage
+#ott-file("path/to/spec.ott")
+````
 
 Notes:
 
 - Current rendering uses `raw(...)` for premises/conclusions (no structured math AST yet).
-- Filter-mode (`[[...]]`) and proof-assistant backends are not implemented yet.
+- Filter-mode (`[[...]]`) is not implemented; use `#ott[...]` / `#ott-file(...)` instead.
+- Proof-assistant backends are not implemented yet.
 
 ## Design / plan
 

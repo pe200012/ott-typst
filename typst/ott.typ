@@ -77,6 +77,42 @@
   out
 }
 
+#let _spec_text(body) = {
+  if type(body) == str {
+    body
+  } else if type(body) == content and body.has("text") {
+    // Typically a `raw(...)` element or other text-like content.
+    body.text
+  } else if type(body) == content and body.has("children") {
+    // Common case for `#ott[```ott ...```]`: the raw block is nested inside the body.
+    let code = body.children.find(c => c.func() == raw)
+    assert.ne(
+      code,
+      none,
+      message: "ott[...] expects raw content (e.g. a ```ott code block```).",
+    )
+    code.text
+  } else {
+    panic("ott[...] expects either a string or raw content")
+  }
+}
+
+/// Render an inline Ott snippet.
+///
+/// Prefer passing a raw code block so the Ott source is preserved exactly.
+///
+/// Example:
+/// ```typst
+/// #ott[```ott
+/// grammar
+///   t :: T ::= | ...
+/// ```]
+/// ```
+#let ott(body) = render(_spec_text(body))
+
+/// Render an Ott file (convenience wrapper around `render(read(path))`).
+#let ott-file(path) = render(read(path))
+
 // Note: In Typst, file paths are resolved relative to the file that contains
-// the `read(...)` call. Prefer `#render(read("path/to/spec.ott"))` in the
-// *calling* document.
+// the `read(...)` call. Prefer `#render(read("path/to/spec.ott"))` (or
+// `#ott-file("path/to/spec.ott")`) in the *calling* document.
