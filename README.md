@@ -7,6 +7,7 @@ Rust + WASM + Typst reimplementation of the Ott toolchain.
 - Parse a large subset of Ott’s `.ott` DSL (tested against upstream Ott `tests/*.ott`, except known negative tests).
 - Run basic semantic checks (duplicate grammar roots, subrules references, duplicate rule names).
 - Render grammars and inference rules in Typst via a WASM plugin.
+- Parse and validate object-language terms/snippets in Typst from a loaded Ott spec (`ott-file` → `#ott[...]`).
 
 ## Repository layout
 
@@ -40,26 +41,24 @@ typst compile --root . demo.typ demo.pdf
 ## Use in your own Typst document
 
 ````typst
-#import "typst/ott.typ": ott, ott-file
+#import "typst/ott.typ": render, ott-file
 
-// Inline usage (recommended: use a raw code block)
-#ott[
-```ott
-grammar
+// Render grammar + inference rules from a spec
+#render(read("path/to/spec.ott"))
 
- t :: T_ ::=
-  | x :: :: var
-```
-]
+// Build a term parser (choose a start nonterminal/root)
+#let ott = ott-file(read("path/to/spec.ott"), root: "t")
 
-// File usage
-#ott-file("path/to/spec.ott")
+// Parse + typeset terms
+#ott[x]
+#ott[`\x.x`]
+$ #ott[`[x|->x]x`] $
 ````
 
 Notes:
 
-- Current rendering uses `raw(...)` for premises/conclusions (no structured math AST yet).
-- Filter-mode (`[[...]]`) is not implemented; use `#ott[...]` / `#ott-file(...)` instead.
+- Term parsing returns `raw(...)` content for now (monospace, safe to embed in markup or math).
+- Filter-mode (`[[...]]`) is not implemented; use `ott-file(...)` + the returned `ott[...]` function instead.
 - Proof-assistant backends are not implemented yet.
 
 ## Design / plan

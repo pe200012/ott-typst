@@ -1,7 +1,9 @@
 // Next-gen Ott integration for Typst.
 //
-// This file expects a WASM plugin at `typst/plugins/ott.wasm` that exports
-// `parse_rules(bytes) -> bytes` returning CBOR.
+// This file expects a WASM plugin at `typst/plugins/ott.wasm` that exports:
+// - `parse_rules(bytes) -> bytes` returning CBOR render items
+// - `compile_spec(bytes) -> bytes` returning CBOR `{id, roots, default_root}`
+// - `parse_term(id_bytes, root_bytes, term_bytes) -> bytes` returning UTF-8
 
 #import "@preview/curryst:0.5.0": rule, prooftree
 
@@ -77,42 +79,49 @@
   out
 }
 
-#let _spec_text(body) = {
+#let _body_text(body) = {
   if type(body) == str {
     body
-  } else if type(body) == content and body.has("text") {
-    // Typically a `raw(...)` element or other text-like content.
-    body.text
-  } else if type(body) == content and body.has("children") {
-    // Common case for `#ott[```ott ...```]`: the raw block is nested inside the body.
-    let code = body.children.find(c => c.func() == raw)
-    assert.ne(
-      code,
-      none,
-      message: "ott[...] expects raw content (e.g. a ```ott code block```).",
-    )
-    code.text
+  } else if type(body) == content {
+    if body.func() == raw {
+      body.text
+    } else if body.has("text") {
+      if type(body.text) == str {
+        body.text
+      } else {
+        _body_text(body.text)
+      }
+    } else if body.has("children") {
+      body.children.map(_body_text).join()
+    } else if body.has("body") {
+      _body_text(body.body)
+    } else {
+      ""
+    }
   } else {
-    panic("ott[...] expects either a string or raw content")
+    repr(body)
   }
 }
 
-/// Render an inline Ott snippet.
+/// Compile an Ott spec (string) into a term parser function.
 ///
-/// Prefer passing a raw code block so the Ott source is preserved exactly.
+/// The returned value is a function that can be called as `#ott[term]`.
+#let ott-spec(spec, root: auto) = {
+  let info = cbor(_ott_wasm.compile_spec(bytes(spec)))
+  let id = info.id
+  let chosen = if root == auto { info.default_root } else { root }
+
+  body => {
+    let term = _body_text(body).trim()
+    assert.ne(term, "", message: "ott[...] term is empty")
+
+    let out = str(_ott_wasm.parse_term(bytes(str(id)), bytes(chosen), bytes(term)))
+    _rawline(out)
+  }
+}
+
+/// Load an Ott spec and return a term parser function.
 ///
-/// Example:
-/// ```typst
-/// #ott[```ott
-/// grammar
-///   t :: T ::= | ...
-/// ```]
-/// ```
-#let ott(body) = render(_spec_text(body))
-
-/// Render an Ott file (convenience wrapper around `render(read(path))`).
-#let ott-file(path) = render(read(path))
-
-// Note: In Typst, file paths are resolved relative to the file that contains
-// the `read(...)` call. Prefer `#render(read("path/to/spec.ott"))` (or
-// `#ott-file("path/to/spec.ott")`) in the *calling* document.
+/// Due to Typst's path resolution rules, you typically call this as:
+/// `#let ott = ott-file(read("path/to/spec.ott"), root: "...")`.
+#let ott-file(spec, root: auto) = ott-spec(spec, root: root)

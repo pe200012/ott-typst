@@ -10,3 +10,4 @@ workspace = true
 
 [dependencies]
 ott-bind = { path = "../ott-bind" }
+regex = "1.10"

@@ -1,21 +1,20 @@
-#import "ott.typ": ott, render
+#import "ott.typ": render, ott-file
 
-= Ott demo (rendered by ott-wasm)
+= TAPL Arrow (spec + term parsing demo)
 
-== Inline snippet
-
-#ott[
-```ott
-metavar ident , x  ::= {{ lex alphanum }}
-
-grammar
-
- expr , e  :: Expr_ ::=
-  |  x  :: :: var
-  |  () :: :: unit
-```
-]
-
-== TAPL Arrow (from file)
+== Render the spec
 
 #render(read("../fixtures/tapl/arrow.ott"))
+
+== Parse and typeset terms
+
+#let ott = ott-file(read("../fixtures/tapl/arrow.ott"), root: "t")
+
+- var: #ott[x]
+- abs (no spaces): #ott[`\x.x`]
+- abs (spaced): #ott[`\ x . x`]
+- subst (no spaces): #ott[`[x|->x]x`]
+
+In math:
+
+$ #ott[`\x.x`] --> #ott[x] $

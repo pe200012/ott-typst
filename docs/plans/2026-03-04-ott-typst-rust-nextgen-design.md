@@ -419,3 +419,28 @@ Regression: with strict bind-spec parsing enabled, `ott-cli check` still passes 
 - Updated demos: `demo.typ`, `typst/demo.typ`.
 - Updated README usage examples.
 - Verified end-to-end: `typst compile --root . demo.typ /tmp/ott-demo.pdf` succeeds.
+
+### 2026-03-04 — Typst term parsing API (`ott-file` → `ott[...]`)
+
+Implemented an explicit Typst API to parse **object-language snippets** against the Ott grammar defined in a loaded spec (a “filter-mode replacement”, but without regex scanning).
+
+- Core: `crates/ott-core/src/syntax.rs`
+  - `compile_syntax(&CheckedSpec) -> OttSyntax` compiles grammar productions into a small CFG.
+  - Expands dot-form lists (`..`/`...`/`....`) and comprehension list forms (`</ ... // ... />`) by generating synthetic list nonterminals.
+  - Lexer:
+    - longest-match terminal tokens extracted from grammar patterns
+    - word tokens matched against metavariable `{{ lex ... }}` patterns (`alphanum`/`Alphanum`/`numeral`/`numeric`/regex)
+  - Parser: Earley recognizer (accepts ambiguity) used for fast validation.
+- WASM: `crates/ott-wasm/src/lib.rs`
+  - Added exports:
+    - `compile_spec(spec_bytes) -> cbor({id, roots, default_root})`
+    - `parse_term(id_bytes, root_bytes, term_bytes) -> utf8(term)`
+  - Keeps compiled syntax in a module-global cache keyed by `id`.
+- Typst: `typst/ott.typ`
+  - `ott-file(spec, root: auto)` / `ott-spec(spec, root:auto)` returns a closure usable as `#ott[term]`.
+  - Typical use (due to Typst path resolution rules):
+    - `#let ott = ott-file(read("spec.ott"), root: "t")`
+  - Returns `raw(...)` (monospace) content; safe in markup and math.
+- Tests: `crates/ott-core/tests/term_parsing.rs` exercises TAPL `arrow.ott` terms (`x`, `\x.x`, `[x|->x]x`).
+
+Note: this supersedes the earlier inline `#ott[```ott ...```]` helper that rendered embedded *spec* snippets. Spec rendering remains available via `#render(read(...))`.
