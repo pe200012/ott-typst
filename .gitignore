@@ -9,3 +9,9 @@
 
 # Serena
 /.serena/
+
+# Local build artifacts
+/demo.pdf
+
+# Local tooling
+/.oc/
