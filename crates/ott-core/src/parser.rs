@@ -117,10 +117,14 @@ pub fn parse_spec(src: &str) -> OttResult<Spec> {
             "indexvar" => items.push(Item::Metavar(parse_metavar(true, &lines, &mut i)?)),
             "grammar" => items.push(Item::Grammar(parse_grammar(&lines, &mut i)?)),
             "subrules" => items.push(Item::Subrules(parse_subrules(&lines, &mut i)?)),
-            "substitutions" => items.push(Item::Substitutions(parse_substitutions(&lines, &mut i)?)),
+            "substitutions" => {
+                items.push(Item::Substitutions(parse_substitutions(&lines, &mut i)?))
+            }
             "defns" => items.push(Item::Defns(parse_defns(&lines, &mut i)?)),
             "defn" => items.push(Item::Defn(parse_defn(&lines, &mut i)?)),
-            _ => items.push(Item::UnknownSection(parse_unknown_section(kw, &lines, &mut i))),
+            _ => items.push(Item::UnknownSection(parse_unknown_section(
+                kw, &lines, &mut i,
+            ))),
         }
     }
 
@@ -247,8 +251,10 @@ fn parse_metavar(is_index: bool, lines: &[&str], i: &mut usize) -> OttResult<Met
         .collect();
 
     if names.is_empty() {
-        return Err(OttError::new("metavar declaration must name at least one identifier")
-            .with_position(Position::new(start_line, 1)));
+        return Err(
+            OttError::new("metavar declaration must name at least one identifier")
+                .with_position(Position::new(start_line, 1)),
+        );
     }
 
     reps.extend(extract_inline_hom_blocks(&after_cce).0);
@@ -299,20 +305,20 @@ fn parse_grammar(lines: &[&str], i: &mut usize) -> OttResult<GrammarSection> {
         // Grammar rule header line: `<root> :: <sort> ::= ...`
         let header = line;
         if !header.contains("::=") {
-            return Err(OttError::new("expected grammar rule header containing `::=`")
-                .with_position(Position::new(*i + 1, 1)));
+            return Err(
+                OttError::new("expected grammar rule header containing `::=`")
+                    .with_position(Position::new(*i + 1, 1)),
+            );
         }
 
         let (lhs, rhs) = header
             .split_once("::=")
             .ok_or_else(|| OttError::new("expected `::=` in grammar header"))?;
 
-        let (root_part, sort_part) = lhs
-            .split_once("::")
-            .ok_or_else(|| {
-                OttError::new("expected `::` in grammar header before `::=`")
-                    .with_position(Position::new(*i + 1, 1))
-            })?;
+        let (root_part, sort_part) = lhs.split_once("::").ok_or_else(|| {
+            OttError::new("expected `::` in grammar header before `::=`")
+                .with_position(Position::new(*i + 1, 1))
+        })?;
 
         let (root_annos, root_part_stripped) = extract_inline_hom_blocks(root_part);
 
@@ -509,9 +515,9 @@ fn parse_subrules(lines: &[&str], i: &mut usize) -> OttResult<SubrulesSection> {
         }
 
         let t = line.trim();
-        let (sub, sup) = t
-            .split_once("<::")
-            .ok_or_else(|| OttError::new("expected `<::` in subrules line").with_position(Position::new(*i + 1, 1)))?;
+        let (sub, sup) = t.split_once("<::").ok_or_else(|| {
+            OttError::new("expected `<::` in subrules line").with_position(Position::new(*i + 1, 1))
+        })?;
         relations.push(Subrule {
             sub: sub.trim().to_string(),
             sup: sup.trim().to_string(),
@@ -546,8 +552,10 @@ fn parse_substitutions(lines: &[&str], i: &mut usize) -> OttResult<Substitutions
             "single" => SubstKind::Single,
             "multiple" => SubstKind::Multiple,
             _ => {
-                return Err(OttError::new("expected `single` or `multiple` in substitutions")
-                    .with_position(Position::new(*i + 1, 1)));
+                return Err(
+                    OttError::new("expected `single` or `multiple` in substitutions")
+                        .with_position(Position::new(*i + 1, 1)),
+                );
             }
         };
 
@@ -561,9 +569,10 @@ fn parse_substitutions(lines: &[&str], i: &mut usize) -> OttResult<Substitutions
         })?;
 
         let rest = it.collect::<Vec<_>>().join(" ");
-        let (_before, after) = rest
-            .split_once("::")
-            .ok_or_else(|| OttError::new("expected `::` before substitution name").with_position(Position::new(*i + 1, 1)))?;
+        let (_before, after) = rest.split_once("::").ok_or_else(|| {
+            OttError::new("expected `::` before substitution name")
+                .with_position(Position::new(*i + 1, 1))
+        })?;
         let name = after.trim().to_string();
 
         entries.push(SubstEntry {
@@ -600,7 +609,11 @@ fn parse_defns(lines: &[&str], i: &mut usize) -> OttResult<DefnsSection> {
 fn parse_defn(lines: &[&str], i: &mut usize) -> OttResult<DefnBlock> {
     // consume `defn` keyword line
     let defn_line = lines[*i];
-    let mut header = defn_line.trim_start().strip_prefix("defn").unwrap_or("").trim();
+    let mut header = defn_line
+        .trim_start()
+        .strip_prefix("defn")
+        .unwrap_or("")
+        .trim();
     *i += 1;
 
     if header.is_empty() {
@@ -866,8 +879,9 @@ fn parse_hom_inner(inner: &str, start_line: usize) -> OttResult<HomBlock> {
     let body = it.next().unwrap_or("").trim();
 
     if name.is_empty() {
-        return Err(OttError::new("hom block must have a name")
-            .with_position(Position::new(start_line, 1)));
+        return Err(
+            OttError::new("hom block must have a name").with_position(Position::new(start_line, 1))
+        );
     }
 
     Ok(HomBlock {

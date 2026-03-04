@@ -1,5 +1,5 @@
 use ciborium::{de, ser};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TypstRenderDoc {
@@ -116,10 +116,7 @@ pub fn render_for_typst(spec: &ott_core::CheckedSpec) -> TypstRenderDoc {
                 }
             }
             Item::Defn(d) => {
-                let title = d
-                    .comment
-                    .clone()
-                    .unwrap_or_else(|| d.header.clone());
+                let title = d.comment.clone().unwrap_or_else(|| d.header.clone());
                 items.push(TypstRenderItem::Section { title });
 
                 for rule in &d.rules {

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use ott_core::{check_spec, parse_spec, OttOptions};
+use ott_core::{OttOptions, check_spec, parse_spec};
 
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))

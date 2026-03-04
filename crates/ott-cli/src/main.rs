@@ -52,10 +52,7 @@ fn main() -> miette::Result<()> {
             let checked = ott_core::check_spec(spec, &ott_core::OttOptions::default())
                 .map_err(|e| miette::miette!(e.to_string()))?;
             let doc = ott_render::render_for_typst(&checked);
-            println!(
-                "{}",
-                serde_json::to_string_pretty(&doc).into_diagnostic()?
-            );
+            println!("{}", serde_json::to_string_pretty(&doc).into_diagnostic()?);
         }
         Command::RenderCbor { input, output } => {
             let src = std::fs::read_to_string(&input).into_diagnostic()?;

@@ -60,7 +60,13 @@ impl OttError {
 impl std::fmt::Display for OttError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(pos) = self.position {
-            write!(f, "{msg} (line {line}, col {col})", msg = self.message, line = pos.line, col = pos.column)
+            write!(
+                f,
+                "{msg} (line {line}, col {col})",
+                msg = self.message,
+                line = pos.line,
+                col = pos.column
+            )
         } else {
             write!(f, "{msg}", msg = self.message)
         }

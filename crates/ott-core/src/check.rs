@@ -34,10 +34,8 @@ pub fn check_spec(spec: Spec, opts: &OttOptions) -> OttResult<CheckedSpec> {
             for rule in &g.rules {
                 for root in &rule.roots {
                     if !roots.insert(root.clone()) {
-                        return Err(
-                            OttError::new(format!("duplicate grammar root `{}`", root))
-                                .with_position(Position::new(item_idx + 1, 1)),
-                        );
+                        return Err(OttError::new(format!("duplicate grammar root `{}`", root))
+                            .with_position(Position::new(item_idx + 1, 1)));
                     }
                     root_index.entry(root.clone()).or_insert(item_idx);
                 }

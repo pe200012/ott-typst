@@ -7,15 +7,9 @@ pub struct BindSpec {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Clause {
-    Bind {
-        binder: Expr,
-        in_term: String,
-    },
+    Bind { binder: Expr, in_term: String },
 
-    Assign {
-        name: String,
-        value: Expr,
-    },
+    Assign { name: String, value: Expr },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -60,7 +54,12 @@ pub struct BindParseError {
 
 impl fmt::Display for BindParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{msg} (byte offset {off})", msg = self.message, off = self.offset)
+        write!(
+            f,
+            "{msg} (byte offset {off})",
+            msg = self.message,
+            off = self.offset
+        )
     }
 }
 
