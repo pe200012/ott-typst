@@ -122,5 +122,9 @@
 /// Load an Ott spec and return a term parser function.
 ///
 /// Due to Typst's path resolution rules, you typically call this as:
-/// `#let ott = ott-file(read("path/to/spec.ott"), root: "...")`.
+///
+/// - Auto (Ott-style `user_syntax`):
+///   `#let ott = ott-file(read("path/to/spec.ott"))`
+/// - Disambiguate by choosing a start root/metavar sort:
+///   `#let ott = ott-file(read("path/to/spec.ott"), root: "t")`
 #let ott-file(spec, root: auto) = ott-spec(spec, root: root)

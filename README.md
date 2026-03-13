@@ -46,8 +46,11 @@ typst compile --root . demo.typ demo.pdf
 // Render grammar + inference rules from a spec
 #render(read("path/to/spec.ott"))
 
-// Build a term parser (choose a start nonterminal/root)
-#let ott = ott-file(read("path/to/spec.ott"), root: "t")
+// Build a term parser.
+// - If `root` is omitted, it behaves like Ott's `user_syntax` (tries all roots/metavars).
+// - Specify `root` only to disambiguate.
+#let ott = ott-file(read("path/to/spec.ott"))
+// #let ott = ott-file(read("path/to/spec.ott"), root: "t")
 
 // Parse + typeset terms
 #ott[x]
