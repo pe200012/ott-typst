@@ -76,8 +76,7 @@ fn get_or_insert_syntax(
 
 #[wasm_func]
 pub fn parse_rules(spec_bytes: &[u8]) -> Result<Vec<u8>, String> {
-    let src =
-        std::str::from_utf8(spec_bytes).map_err(|e| format!("input is not UTF-8: {e}"))?;
+    let src = std::str::from_utf8(spec_bytes).map_err(|e| format!("input is not UTF-8: {e}"))?;
 
     let spec = ott_core::parse_spec(src).map_err(|e| e.to_string())?;
     let checked =
@@ -110,13 +109,6 @@ pub fn parse_term(
         let syntax = get_or_insert_syntax(&mut state, spec_src)?;
 
         let root = root.trim();
-        let root = if root.is_empty() {
-            syntax
-                .default_root()
-                .ok_or_else(|| "spec does not define any grammar roots".to_string())?
-        } else {
-            root
-        };
 
         let code = syntax
             .render_typst_math(root, term)

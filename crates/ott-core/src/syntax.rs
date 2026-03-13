@@ -229,7 +229,11 @@ pub struct OttSyntax {
     /// Canonical grammar roots in stable order of appearance.
     pub roots: Vec<String>,
 
+    /// Canonical metavariable roots (sort names) in stable order of appearance.
+    pub metavar_roots: Vec<String>,
+
     root_alias: HashMap<String, String>,
+    metavar_alias: HashMap<String, String>,
     metavars: HashMap<String, MetavarDef>,
 
     grammar: Grammar,
@@ -248,6 +252,12 @@ impl OttSyntax {
         self.root_alias.get(name).map(String::as_str)
     }
 
+    /// Resolve a metavariable root name (sort) or synonym to its canonical sort name.
+    #[must_use]
+    pub fn resolve_metavar_root(&self, name: &str) -> Option<&str> {
+        self.metavar_alias.get(name).map(String::as_str)
+    }
+
     /// Parse (recognize) `input` as the grammar root `root`.
     ///
     /// On success, returns a normalized string (currently: trimmed input).
@@ -263,15 +273,150 @@ impl OttSyntax {
 
     /// Parse `input` and pretty-print it using `{{ typst ... }}` hom templates.
     ///
+    /// - If `root` is empty (or equal to `"user_syntax"`), we emulate upstream Ott's
+    ///   filter-mode parsing behavior: try all metavars and grammar roots, prefer
+    ///   metavars if they parse, and fail on ambiguity unless all parses
+    ///   pretty-print identically.
+    /// - Otherwise, `root` can be a grammar root (or synonym) or a metavariable sort
+    ///   (or synonym).
+    ///
     /// Returns Typst **math code** (without surrounding `$...$`).
     pub fn render_typst_math(&self, root: &str, input: &str) -> OttResult<String> {
-        let root = self
-            .resolve_root(root)
-            .ok_or_else(|| OttError::new(format!("unknown grammar root `{}`", root)))?;
+        let root = root.trim();
+        if root.is_empty() || root == "user_syntax" {
+            return self.render_typst_math_user_syntax(input);
+        }
+
+        self.render_typst_math_explicit(root, input)
+    }
+
+    fn render_typst_math_explicit(&self, root: &str, input: &str) -> OttResult<String> {
+        if let Some(canon) = self.resolve_root(root) {
+            let toks = self.lex_input(input)?;
+            let tree = earley_parse(canon, &self.grammar, &self.metavars, &toks, input)?;
+            return self.render_node(&tree, input);
+        }
+
+        if let Some(sort) = self.resolve_metavar_root(root) {
+            let toks = self.lex_input(input)?;
+            if toks.len() != 1 {
+                return Err(OttError::new(format!(
+                    "expected a single token for metavariable `{}`",
+                    root
+                )));
+            }
+
+            let TokenKind::Word(w) = &toks[0].kind else {
+                return Err(OttError::new(format!(
+                    "expected an identifier token for metavariable `{}`",
+                    root
+                )));
+            };
+
+            let def = self.metavars.get(sort).ok_or_else(|| {
+                OttError::new(format!(
+                    "internal error: missing metavariable sort `{}`",
+                    sort
+                ))
+            })?;
+
+            if !def.lex.matches(w) {
+                return Err(OttError::new(format!(
+                    "token `{}` does not match lexical specification for metavariable `{}`",
+                    w, root
+                )));
+            }
+
+            return self.render_metavar(sort, w);
+        }
+
+        Err(OttError::new(format!(
+            "unknown start symbol `{}` (not a grammar root or metavariable)",
+            root
+        )))
+    }
+
+    fn render_typst_math_user_syntax(&self, input: &str) -> OttResult<String> {
+        #[derive(Debug, Clone)]
+        enum CandidateKind {
+            Metavar(String),
+            Root(String),
+        }
+
+        #[derive(Debug, Clone)]
+        struct Candidate {
+            kind: CandidateKind,
+            code: String,
+        }
 
         let toks = self.lex_input(input)?;
-        let tree = earley_parse(root, &self.grammar, &self.metavars, &toks, input)?;
-        self.render_node(&tree, input)
+        let mut out: Vec<Candidate> = Vec::new();
+
+        // 1) Try metavars first (upstream Ott prefers these in `user_syntax`).
+        if toks.len() == 1 {
+            if let TokenKind::Word(w) = &toks[0].kind {
+                for sort in &self.metavar_roots {
+                    let Some(def) = self.metavars.get(sort) else {
+                        continue;
+                    };
+                    if def.lex.matches(w) {
+                        out.push(Candidate {
+                            kind: CandidateKind::Metavar(sort.clone()),
+                            code: self.render_metavar(sort, w)?,
+                        });
+                    }
+                }
+            }
+        }
+
+        // 2) Try each grammar root.
+        for root in &self.roots {
+            if let Ok(tree) = earley_parse(root, &self.grammar, &self.metavars, &toks, input) {
+                out.push(Candidate {
+                    kind: CandidateKind::Root(root.clone()),
+                    code: self.render_node(&tree, input)?,
+                });
+            }
+        }
+
+        if out.is_empty() {
+            return Err(OttError::new(format!(
+                "failed to parse snippet (grammar roots: {}; metavars: {})",
+                self.roots.join(", "),
+                self.metavar_roots.join(", ")
+            )));
+        }
+
+        // Prefer metavars if any parse succeeded as a metavar.
+        let has_metavar = out
+            .iter()
+            .any(|c| matches!(c.kind, CandidateKind::Metavar(_)));
+        if has_metavar {
+            out.retain(|c| matches!(c.kind, CandidateKind::Metavar(_)));
+        }
+
+        if out.len() == 1 {
+            return Ok(out[0].code.clone());
+        }
+
+        // If all candidates pretty-print identically, accept the first.
+        let first = out[0].code.clone();
+        if out.iter().all(|c| c.code == first) {
+            return Ok(first);
+        }
+
+        let choices = out
+            .iter()
+            .map(|c| match &c.kind {
+                CandidateKind::Metavar(s) => format!("metavar:{s}"),
+                CandidateKind::Root(r) => format!("root:{r}"),
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        Err(OttError::new(format!(
+            "ambiguous snippet: multiple parses ({choices}); specify `root:` to disambiguate"
+        )))
     }
 
     fn render_node(&self, node: &TermNode, src: &str) -> OttResult<String> {
@@ -1576,6 +1721,7 @@ pub fn compile_syntax(spec: &CheckedSpec) -> OttResult<OttSyntax> {
     }
 
     let mut metavar_alias: HashMap<String, String> = HashMap::new();
+    let mut metavar_roots: Vec<String> = Vec::new();
     let mut metavars: HashMap<String, MetavarDef> = HashMap::new();
 
     for item in &spec.spec.items {
@@ -1599,6 +1745,8 @@ pub fn compile_syntax(spec: &CheckedSpec) -> OttResult<OttSyntax> {
             if metavars.contains_key(&canon) {
                 continue;
             }
+
+            metavar_roots.push(canon.clone());
 
             let lex = parse_lex_block(&mv.reps)
                 .unwrap_or_else(|| LexPattern::Builtin(BuiltinLex::Alphanum));
@@ -1631,7 +1779,9 @@ pub fn compile_syntax(spec: &CheckedSpec) -> OttResult<OttSyntax> {
 
     Ok(OttSyntax {
         roots,
+        metavar_roots,
         root_alias,
+        metavar_alias,
         metavars,
         grammar,
         terminals,

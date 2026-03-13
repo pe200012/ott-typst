@@ -58,8 +58,7 @@ fn upstream_ott_tests_parse_and_check() {
             continue;
         }
 
-        let spec = parse_spec(&src)
-            .unwrap_or_else(|e| panic!("parse failed for {path:?}: {e}"));
+        let spec = parse_spec(&src).unwrap_or_else(|e| panic!("parse failed for {path:?}: {e}"));
         check_spec(spec, &OttOptions::default())
             .unwrap_or_else(|e| panic!("check failed for {path:?}: {e}"));
     }
